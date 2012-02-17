@@ -8978,8 +8978,9 @@ int QualcommCameraHardware::storeMetaDataInBuffers(int enable)
 {
         /* this is a dummy func now. fix me later */
     LOGI("in storeMetaDataInBuffers : enable %d", enable);
-    mStoreMetaDataInFrame = enable;
-    return 0;
+ //   mStoreMetaDataInFrame = enable;
+    return INVALID_OPERATION;
+//    return 0;
 }
 
 void QualcommCameraHardware::setCallbacks(camera_notify_callback notify_cb,
