@@ -3057,14 +3057,12 @@ void QualcommCameraHardware::runPreviewThread(void *data)
                            (native_handle_t*)(*(frame_buffer[bufferIndex].buffer)))) {
                        LOGE("%s: genlock_unlock_buffer failed", __FUNCTION__);
                        mDisplayLock.unlock();
-                       return;
                     } else {
                        frame_buffer[bufferIndex].lockState = BUFFER_UNLOCKED;
                     }
                 } else {
                     LOGE("%s: buffer to be enqueued is unlocked", __FUNCTION__);
                     mDisplayLock.unlock();
-                    return;
                 }
              retVal = mPreviewWindow->enqueue_buffer(mPreviewWindow,
                                         frame_buffer[bufferIndex].buffer);
@@ -4078,6 +4076,11 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
     if(!strcmp(mDeviceName,"7x25A"))
         rotation = (rotation + 90)%360;
 
+    if(rotation >= 0) {
+        if(!LINK_jpeg_encoder_setRotation(rotation)) {
+            LOGE("native_jpeg_encode set rotation failed");
+        }
+    }
     if (mIs3DModeOn)
         rotation = 0;
 //    ret = native_set_parms(CAMERA_PARM_JPEG_ROTATION, sizeof(int), &rotation);
