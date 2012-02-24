@@ -2519,137 +2519,6 @@ void QualcommCameraHardware::setGpsParameters() {
 
 }
 
-#if 0
-bool QualcommCameraHardware::initZslParameter(void)
-    {  LOGV("%s: E", __FUNCTION__);
-       mParameters.getPictureSize(&mPictureWidth, &mPictureHeight);
-       LOGV("initZslParamter E: picture size=%dx%d", mPictureWidth, mPictureHeight);
-       if (updatePictureDimension(mParameters, mPictureWidth, mPictureHeight)) {
-         mDimension.picture_width = mPictureWidth;
-         mDimension.picture_height = mPictureHeight;
-       }
-
-       /* use the default thumbnail sizes */
-        mZslParms.picture_width = mPictureWidth;
-        mZslParms.picture_height = mPictureHeight;
-        mZslParms.preview_width =  mDimension.display_width;
-        mZslParms.preview_height = mDimension.display_height;
-        mZslParms.useExternalBuffers = TRUE;
-          /* fill main image size, thumbnail size, postview size into capture_params_t*/
-        memset(&mZslCaptureParms, 0, sizeof(zsl_capture_params_t));
-        mZslCaptureParms.thumbnail_height = mPostviewHeight;
-        mZslCaptureParms.thumbnail_width = mPostviewWidth;
-        LOGV("Number of snapshot to capture: %d",numCapture);
-        mZslCaptureParms.num_captures = numCapture;
-
-        return true;
-    }
-#endif
-
-#if 0
-bool QualcommCameraHardware::initImageEncodeParameters(int size)
-{
-    LOGV("%s: E", __FUNCTION__);
-    memset(&mImageEncodeParms, 0, sizeof(encode_params_t));
-    int jpeg_quality = mParameters.getInt("jpeg-quality");
-    bool ret;
-    if (jpeg_quality >= 0) {
-        LOGV("initJpegParameters, current jpeg main img quality =%d",
-             jpeg_quality);
-        //Application can pass quality of zero
-        //when there is no back sensor connected.
-        //as jpeg quality of zero is not accepted at
-        //camera stack, pass default value.
-        if(jpeg_quality == 0) jpeg_quality = 85;
-        mImageEncodeParms.quality = jpeg_quality;
-        ret = native_set_parms(CAMERA_PARM_JPEG_MAINIMG_QUALITY, sizeof(int), &jpeg_quality);
-        if(!ret){
-          LOGE("initJpegParametersX: failed to set main image quality");
-          return false;
-        }
-    }
-
-    int thumbnail_quality = mParameters.getInt("jpeg-thumbnail-quality");
-    if (thumbnail_quality >= 0) {
-        //Application can pass quality of zero
-        //when there is no back sensor connected.
-        //as quality of zero is not accepted at
-        //camera stack, pass default value.
-        if(thumbnail_quality == 0) thumbnail_quality = 85;
-        LOGV("initJpegParameters, current jpeg thumbnail quality =%d",
-             thumbnail_quality);
-        /* TODO: check with mm-camera? */
-        mImageEncodeParms.quality = thumbnail_quality;
-        ret = native_set_parms(CAMERA_PARM_JPEG_THUMB_QUALITY, sizeof(int), &thumbnail_quality);
-        if(!ret){
-          LOGE("initJpegParameters X: failed to set thumbnail quality");
-          return false;
-        }
-    }
-
-    int rotation = mParameters.getInt("rotation");
-    char mDeviceName[PROPERTY_VALUE_MAX];
-    property_get("ro.hw_plat", mDeviceName, "");
-    if(!strcmp(mDeviceName,"7x25A"))
-        rotation = (rotation + 90)%360;
-
-    if (mIs3DModeOn)
-        rotation = 0;
-    if (rotation >= 0) {
-        LOGV("initJpegParameters, rotation = %d", rotation);
-        mImageEncodeParms.rotation = rotation;
-    }
-
-    jpeg_set_location();
-
-    //set TimeStamp
-    const char *str = mParameters.get(CameraParameters::KEY_EXIF_DATETIME);
-    if(str != NULL) {
-      strncpy(dateTime, str, 19);
-      dateTime[19] = '\0';
-      addExifTag(EXIFTAGID_EXIF_DATE_TIME_ORIGINAL, EXIF_ASCII,
-                  20, 1, (void *)dateTime);
-    }
-
-    int focalLengthValue = (int) (mParameters.getFloat(
-                CameraParameters::KEY_FOCAL_LENGTH) * FOCAL_LENGTH_DECIMAL_PRECISON);
-    rat_t focalLengthRational = {focalLengthValue, FOCAL_LENGTH_DECIMAL_PRECISON};
-    memcpy(&focalLength, &focalLengthRational, sizeof(focalLengthRational));
-    addExifTag(EXIFTAGID_FOCAL_LENGTH, EXIF_RATIONAL, 1,
-                1, (void *)&focalLength);
-    //Adding ExifTag for ISOSpeedRating
-    const char *iso_str = mParameters.get(CameraParameters::KEY_ISO_MODE);
-    int iso_value = attr_lookup(iso, sizeof(iso) / sizeof(str_map), iso_str);
-    isoMode = iso_arr[iso_value];
-    addExifTag(EXIFTAGID_ISO_SPEED_RATING,EXIF_SHORT,1,1,(void *)&isoMode);
-
-    if (mUseJpegDownScaling) {
-      LOGV("initImageEncodeParameters: update main image", __func__);
-      mImageEncodeParms.output_picture_width = mActualPictWidth;
-      mImageEncodeParms.output_picture_height = mActualPictHeight;
-    }
-    mImageEncodeParms.cbcr_offset = mCbCrOffsetRaw;
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
-        mImageEncodeParms.cbcr_offset = mCbCrOffsetRaw;
-    /* TODO: check this */
-    mImageEncodeParms.y_offset = 0;
-    for(int i = 0; i < size; i++){
-        memset(&mEncodeOutputBuffer[i], 0, sizeof(mm_camera_buffer_t));
-        mEncodeOutputBuffer[i].ptr = (uint8_t *)mJpegMapped[i]->data;
-        mEncodeOutputBuffer[i].filled_size = mJpegMaxSize;
-        mEncodeOutputBuffer[i].size = mJpegMaxSize;
-        mEncodeOutputBuffer[i].fd = mJpegfd[i];
-        mEncodeOutputBuffer[i].offset = 0;
-    }
-    mImageEncodeParms.p_output_buffer = mEncodeOutputBuffer;
-    mImageEncodeParms.exif_data = exif_data;
-    mImageEncodeParms.exif_numEntries = exif_table_numEntries;
-
-    mImageEncodeParms.format3d = mIs3DModeOn;
-    return true;
-}
-#endif
-
 bool QualcommCameraHardware::native_set_parms(
     mm_camera_parm_type_t type, uint16_t length, void *value)
 {
@@ -5436,6 +5305,7 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
                                  NULL);
         // Waiting for callback to come
         LOGV("runSnapshotThread : waiting for callback to come");
+        receiveRawPicture();
         mJpegThreadWaitLock.lock();
         while (mJpegThreadRunning) {
             LOGV("%s: waiting for jpeg callback.", __FUNCTION__);
