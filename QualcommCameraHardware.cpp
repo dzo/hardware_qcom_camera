@@ -1373,6 +1373,7 @@ QualcommCameraHardware::QualcommCameraHardware()
       mPreviewFrameSize(0),
       mRawSize(0),
       mCbCrOffsetRaw(0),
+      mYOffset(0),
       mAutoFocusThreadRunning(false),
       mInitialized(false),
       mBrightness(0),
@@ -4235,7 +4236,8 @@ bool QualcommCameraHardware::createSnapshotMemory (int numberOfRawBuffers, int n
             int active = (cnt < ACTIVE_ZSL_BUFFERS);  // TODO check ?
             register_buf(mJpegMaxSize,
                 mRawSize,
-                mCbCrOffsetRaw,0,
+                mCbCrOffsetRaw,
+                mYOffset,
                 mRawfd[cnt],0,
                 (uint8_t *)mRawMapped[cnt]->data,
                 MSM_PMEM_MAINIMG,
@@ -4497,7 +4499,6 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
     }
     LOGE("w=%d h=%d offset=%d",mPictureWidth,mPictureHeight,mCbCrOffsetRaw);
     cam_buf_info_t buf_info;
-    int yOffset = 0;
     if(mIs3DModeOn == false)
     {
         buf_info.resolution.width = mPictureWidth * w_scale_factor;
@@ -4506,7 +4507,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         mRawSize = buf_info.size;
         mJpegMaxSize = mRawSize;
         mCbCrOffsetRaw = buf_info.cbcr_offset;
-        yOffset = buf_info.yoffset;
+        mYOffset = buf_info.yoffset;
     }
     LOGE("new w=%d h=%d offset=%d yoffset=%d",mPictureWidth,mPictureHeight,mCbCrOffsetRaw,yOffset);
     int mBufferSize;
