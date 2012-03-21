@@ -3713,7 +3713,7 @@ bool QualcommCameraHardware::createSnapshotMemory (int numberOfRawBuffers, int n
                     return false;
             }
             LOGE("%s  Raw memory index: %d , fd is %d ", __func__, cnt, mRawfd[cnt]);
-            mRawMapped[cnt]=mGetMemory(mRawfd[cnt], mJpegMaxSize,1,mCallbackCookie);
+            mRawMapped[cnt]=mGetMemory(mRawfd[cnt], mJpegMaxSize+65536,1,mCallbackCookie);
             if(mRawMapped[cnt] == NULL) {
                 LOGE("Failed to get camera memory for mRawMapped heap index: %d", cnt);
                 return false;
@@ -5100,12 +5100,12 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
         LOGV("mCrop.out1_w = %d, mCrop.out1_h = %d", mCrop.out1_w, mCrop.out1_h);
         LOGV("mDimension.thumbnail_width = %d, mDimension.thumbnail_height = %d", mDimension.thumbnail_width, mDimension.thumbnail_height);
         int CbCrOffset = -1;
-    //    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
+//        if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
             CbCrOffset = mCbCrOffsetRaw;
         mCrop.in1_w = mDimension.orig_picture_dx - jpegPadding; // when cropping is enabled 
         mCrop.in1_h = mDimension.orig_picture_dy - jpegPadding; // when cropping is enabled
         if (!LINK_jpeg_encoder_encode(&mDimension,
-				      (uint8_t *)mRawMapped[0]->data,mRawfd[0],
+			    (uint8_t *)mRawMapped[0]->data+mDimension.orig_picture_dx,mRawfd[0], 
 				      (uint8_t *)mRawMapped[0]->data,                                      mRawfd[0],
                                       &mCrop, exif_data, exif_table_numEntries,
                                       jpegPadding/2, CbCrOffset)) {
