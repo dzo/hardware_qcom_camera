@@ -2581,7 +2581,7 @@ void QualcommCameraHardware::jpeg_set_location()
 
 #undef PARSE_LOCATION
 
-    if (encode_location) {
+//    if (encode_location) {
         LOGV("setting image location ALT %d LAT %lf LON %lf",
              pt.altitude, pt.latitude, pt.longitude);
 
@@ -2591,8 +2591,8 @@ void QualcommCameraHardware::jpeg_set_location()
             LOGE("jpeg_set_location: LINK_jpeg_encoder_setLocation failed.");
         }
         */
-    }
-    else LOGV("not setting image location");
+//    }
+//    else LOGV("not setting image location");
 }
 
 static bool register_buf(int size,
@@ -5025,13 +5025,28 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
    jpeg_set_location();
 
     //set TimeStamp
-    const char *str = mParameters.get(CameraParameters::KEY_EXIF_DATETIME);
-    if(str != NULL) {
+
+    const char *str = mParameters.get(CameraParameters::KEY_GPS_TIMESTAMP);
+    time_t rawtime;
+    struct tm * timeinfo;
+
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+    sprintf(dateTime,"%04d:%02d:%02d %02d:%02d:%02d",timeinfo->tm_year+1900, timeinfo->tm_mon+1, 
+            timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec); 
+    addExifTag(EXIFTAGID_EXIF_DATE_TIME_ORIGINAL, EXIF_ASCII,
+                  20, 1, (void *)dateTime);
+    addExifTag(EXIFTAGID_EXIF_DATE_TIME_CREATED, EXIF_ASCII,
+                  20, 1, (void *)dateTime);
+
+
+/*    if(str != NULL) {
       strncpy(dateTime, str, 19);
       dateTime[19] = '\0';
       addExifTag(EXIFTAGID_EXIF_DATE_TIME_ORIGINAL, EXIF_ASCII,
                   20, 1, (void *)dateTime);
     }
+*/
 
     int focalLengthValue = (int) (mParameters.getFloat(
                 CameraParameters::KEY_FOCAL_LENGTH) * FOCAL_LENGTH_DECIMAL_PRECISON);
@@ -8330,7 +8345,9 @@ status_t QualcommCameraHardware::setMeteringAreas(const CameraParameters& params
         }
         if(checkAreaParameters(str) != 0) {
           LOGE("%s: Failed to parse the input string '%s'", __FUNCTION__, str);
-          return BAD_VALUE;
+          mParameters.set(CameraParameters::KEY_METERING_AREAS, NULL);
+          return NO_ERROR;
+//          return BAD_VALUE;
         }
         mParameters.set(CameraParameters::KEY_METERING_AREAS, str);
     }
@@ -8347,7 +8364,7 @@ status_t QualcommCameraHardware::setFocusAreas(const CameraParameters& params)
     }
     else {
         // handling default string
-        if (strcmp("(-2000,-2000,-2000,-2000,0)", str) == 0) {
+        if (strcmp("(0,0,0,0,0)", str) == 0) {
           mParameters.set(CameraParameters::KEY_FOCUS_AREAS, NULL);
           return NO_ERROR;
         }
