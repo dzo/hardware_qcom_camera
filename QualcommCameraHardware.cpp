@@ -105,7 +105,7 @@ extern "C" {
 #include <dlfcn.h>
 
 #define NUM_YV12_FRAMES 1
-#define FOCUS_AREA_INIT "(-1000,-1000,1000,1000,1000)"
+#define FOCUS_AREA_INIT "(0,0,0,0,0)"
 
 void *libmmcamera;
 void* (*LINK_cam_conf)(void *data);
@@ -5048,6 +5048,7 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
     }
 */
 
+    usleep(500000);
     int focalLengthValue = (int) (mParameters.getFloat(
                 CameraParameters::KEY_FOCAL_LENGTH) * FOCAL_LENGTH_DECIMAL_PRECISON);
     rat_t focalLengthRational = {focalLengthValue, FOCAL_LENGTH_DECIMAL_PRECISON};
@@ -6898,12 +6899,10 @@ void QualcommCameraHardware::receiveRawPicture()
      */
 //    cropp =postviewframe->cropinfo;
     notifyShutter(FALSE);
-
     if(native_start_ops(CAMERA_OPS_GET_PICTURE, cropp) == false) {
             LOGE("getPicture: CAMERA_OPS_GET_PICTURE ioctl failed!");
             return;
     }
- 
 
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG) {
         if(cropp != NULL){
