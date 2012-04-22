@@ -354,7 +354,7 @@ exif_tags_info_t exif_data[MAX_EXIF_TABLE_ENTRIES];
 //static zoom_crop_info zoomCropInfo;
 static android_native_rect_t zoomCropInfo;
 static void *mLastQueuedFrame = NULL;
-#define RECORD_BUFFERS 9
+#define RECORD_BUFFERS 5
 #define RECORD_BUFFERS_8x50 8
 static int kRecordBufferCount;
 /* controls whether VPE is avialable for the target
@@ -8338,16 +8338,17 @@ status_t QualcommCameraHardware::setMeteringAreas(const CameraParameters& params
     }
     else {
         // handling default string
-        if (strcmp("(-2000,-2000,-2000,-2000,0)", str) == 0) {
+        if (strcmp(FOCUS_AREA_INIT, str) == 0) {
           mParameters.set(CameraParameters::KEY_METERING_AREAS, NULL);
           return NO_ERROR;
         }
         if(checkAreaParameters(str) != 0) {
           LOGE("%s: Failed to parse the input string '%s'", __FUNCTION__, str);
           mParameters.set(CameraParameters::KEY_METERING_AREAS, NULL);
-          return NO_ERROR;
-//          return BAD_VALUE;
+//          return NO_ERROR;
+          return BAD_VALUE;
         }
+	LOGE("setMeteringAreas %s",str);
         mParameters.set(CameraParameters::KEY_METERING_AREAS, str);
     }
 
@@ -8363,7 +8364,7 @@ status_t QualcommCameraHardware::setFocusAreas(const CameraParameters& params)
     }
     else {
         // handling default string
-        if (strcmp("(0,0,0,0,0)", str) == 0) {
+        if (strcmp(FOCUS_AREA_INIT, str) == 0) {
           mParameters.set(CameraParameters::KEY_FOCUS_AREAS, NULL);
           return NO_ERROR;
         }
