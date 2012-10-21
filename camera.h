@@ -30,9 +30,10 @@
 #define EXIFTAGID_GPS_PROCESSINGMETHOD 0x1b001b
 #define EXIFTAGID_GPS_DATESTAMP        0x1d001d
 
-#define EXIFTAGID_EXIF_DATE_TIME_ORIGINAL    0x3a9003
-#define EXIFTAGID_EXIF_DATE_TIME_CREATED    0x3b9004
-#define EXIFTAGID_FOCAL_LENGTH         0x45920a
+#define EXIFTAGID_EXIF_DATE_TIME_ORIGINAL    0x939003
+#define EXIFTAGID_EXIF_DATE_TIME_CREATED    0x949004
+#define EXIFTAGID_FOCAL_LENGTH         0xa0920a
+#define EXIFTAGID_ISO_SPEED_RATING     0x908827
 
 typedef enum {
   MM_CAMERA_SUCCESS,
@@ -164,7 +165,36 @@ typedef enum {
   CAMERA_PARM_CAMERA_ID,
   CAMERA_PARM_CAMERA_INFO,
   CAMERA_PARM_PREVIEW_SIZE, /*35*/
+  CAMERA_PARM_QUERY_FALSH4SNAP,
   CAMERA_PARM_FOCUS_DISTANCES,
+  CAMERA_PARM_BUFFER_INFO,
+  CAMERA_PARM_JPEG_ROTATION,
+  CAMERA_PARM_JPEG_MAINIMG_QUALITY, /* 40 */
+  CAMERA_PARM_JPEG_THUMB_QUALITY,
+  CAMERA_PARM_ZSL_ENABLE,
+  CAMERA_PARM_FOCAL_LENGTH,
+  CAMERA_PARM_HORIZONTAL_VIEW_ANGLE,
+  CAMERA_PARM_VERTICAL_VIEW_ANGLE, /* 45 */
+  CAMERA_PARM_MCE,
+  CAMERA_PARM_RESET_LENS_TO_INFINITY,
+  CAMERA_PARM_SNAPSHOTDATA,
+  CAMERA_PARM_HFR,
+  CAMERA_PARM_REDEYE_REDUCTION, /* 50 */
+  CAMERA_PARM_WAVELET_DENOISE,
+  CAMERA_PARM_3D_DISPLAY_DISTANCE,
+  CAMERA_PARM_3D_VIEW_ANGLE,
+  CAMERA_PARM_PREVIEW_FORMAT,
+  CAMERA_PARM_HFR_SIZE, /* 55 */
+  CAMERA_PARM_3D_EFFECT,
+  CAMERA_PARM_3D_MANUAL_CONV_RANGE,
+  CAMERA_PARM_3D_MANUAL_CONV_VALUE,
+  CAMERA_PARM_ENABLE_3D_MANUAL_CONVERGENCE,
+  CAMERA_PARM_HDR,  /* 60 */
+  CAMERA_PARM_AEC_MTR_AREA,
+  CAMERA_PARM_ASD_ENABLE,
+  CAMERA_PARM_AEC_LOCK,
+  CAMERA_PARM_AWB_LOCK,
+  CAMERA_PARM_RECORDING_HINT
 }mm_camera_parm_type_t;
 
 typedef enum {
@@ -184,6 +214,19 @@ typedef enum {
 }mm_camera_ops_type_t;
 
 typedef struct {
+  mm_camera_status_t (*mm_camera_init) (mm_camera_ops_type_t ops_type,
+    void* parm1, void* parm2);
+  mm_camera_status_t (*mm_camera_start) (mm_camera_ops_type_t ops_type,
+    void* parm1, void* parm2);
+  mm_camera_status_t(*mm_camera_stop) (mm_camera_ops_type_t ops_type,
+    void* parm1, void* parm2);
+  mm_camera_status_t (*mm_camera_deinit) (mm_camera_ops_type_t ops_type,
+    void* parm1, void* parm2);
+  int8_t (*mm_camera_is_supported) (mm_camera_ops_type_t ops_type);
+
+} mm_camera_ops;
+/*
+typedef struct {
   mm_camera_status_t (*mm_camera_start) (mm_camera_ops_type_t ops_type,
     void* parm1, void* parm2);
   mm_camera_status_t(*mm_camera_stop) (mm_camera_ops_type_t ops_type,
@@ -191,7 +234,7 @@ typedef struct {
   int8_t (*mm_camera_is_supported) (mm_camera_ops_type_t ops_type);
 
 } mm_camera_ops;
-
+*/
 typedef enum {
   FRAME_READY,
   SNAPSHOT_DONE,
@@ -285,10 +328,10 @@ typedef enum {
 }camera_mode_t;
 
 typedef enum {
-  SIDE_BY_SIDE_HALF,
-  SIDE_BY_SIDE_FULL,
-  TOP_DOWN_HALF,
-  TOP_DOWN_FULL,
+  _SIDE_BY_SIDE_HALF,
+  _SIDE_BY_SIDE_FULL,
+  _TOP_DOWN_HALF,
+  _TOP_DOWN_FULL,
 }cam_3d_frame_format_t;
 
 typedef enum {
@@ -301,6 +344,7 @@ typedef enum {
   BACK_CAMERA,
   FRONT_CAMERA,
 }cam_position_t;
+
 
 typedef struct {
   cam_frame_type_t frame_type;
@@ -1056,25 +1100,26 @@ typedef struct la_config {
 
 } la_config;
 
+
 typedef enum {
-  CAMERA_ANTIBANDING_OFF,
-  CAMERA_ANTIBANDING_60HZ,
-  CAMERA_ANTIBANDING_50HZ,
-  CAMERA_ANTIBANDING_AUTO,
-  CAMERA_MAX_ANTIBANDING,
+  _CAMERA_ANTIBANDING_OFF,
+  _CAMERA_ANTIBANDING_60HZ,
+  _CAMERA_ANTIBANDING_50HZ,
+  _CAMERA_ANTIBANDING_AUTO,
+  _CAMERA_MAX_ANTIBANDING,
 } camera_antibanding_type;
 
 typedef enum {
-  CAMERA_WB_MIN_MINUS_1,
-  CAMERA_WB_AUTO = 1,  /* This list must match aeecamera.h */
-  CAMERA_WB_CUSTOM,
-  CAMERA_WB_INCANDESCENT,
-  CAMERA_WB_FLUORESCENT,
-  CAMERA_WB_DAYLIGHT,
-  CAMERA_WB_CLOUDY_DAYLIGHT,
-  CAMERA_WB_TWILIGHT,
-  CAMERA_WB_SHADE,
-  CAMERA_WB_MAX_PLUS_1
+  _CAMERA_WB_MIN_MINUS_1,
+  _CAMERA_WB_AUTO = 1,
+  _CAMERA_WB_CUSTOM,
+  _CAMERA_WB_INCANDESCENT,
+  _CAMERA_WB_FLUORESCENT,
+  _CAMERA_WB_DAYLIGHT,
+  _CAMERA_WB_CLOUDY_DAYLIGHT,
+  _CAMERA_WB_TWILIGHT,
+  _CAMERA_WB_SHADE,
+  _CAMERA_WB_MAX_PLUS_1
 } config3a_wb_t;
 
 /* Enum Type for different ISO Mode supported */
@@ -1300,6 +1345,7 @@ int is_camstats_thread_running(void);
 /* cam frame*/
 typedef struct {
   cam_preview_mode_t m;
+  camera_mode_t cammode;
 } cam_frame_start_parms;
 
 int launch_camframe_thread(cam_frame_start_parms* parms);
@@ -1415,5 +1461,34 @@ struct fd_roi_t {
     int16_t rect_num;
     struct fd_rect_t faces[MAX_ROI];
 };
+
+typedef struct {
+  uint32_t picture_width;
+  uint32_t picture_height;
+  uint32_t postview_width;
+  uint32_t postview_height;
+  uint32_t thumbnail_width;
+  uint32_t thumbnail_height;
+  int num_captures;
+}capture_params_t;
+
+typedef struct {
+  exif_tags_info_t* exif_data;
+  int exif_numEntries;
+  mm_camera_buffer_t* p_output_buffer;
+  uint8_t buffer_count;
+  uint32_t rotation;
+  uint32_t quality;
+  int y_offset;
+  int cbcr_offset;
+  /* bitmask for the images to be encoded. if capture_and_encode
+   * option is selected, all the images will be encoded irrespective
+   * of bitmask.
+   */
+  uint8_t encodeBitMask;
+  uint32_t output_picture_width;
+  uint32_t output_picture_height;
+  int format3d;
+}encode_params_t;
 
 #endif /* __CAMERA_H__ */

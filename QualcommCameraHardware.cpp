@@ -16,7 +16,7 @@
 ** limitations under the License.
 */
 
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #define LOG_TAG "QualcommCameraHardware"
 #include <utils/Log.h>
@@ -890,8 +890,8 @@ static String8 zsl_values;
 mm_camera_notify mCamNotify;
 mm_camera_ops mCamOps;
 static mm_camera_buffer_t mEncodeOutputBuffer[MAX_SNAPSHOT_BUFFERS];
-//static encode_params_t mImageEncodeParms;
-//static capture_params_t mImageCaptureParms;
+static encode_params_t mImageEncodeParms;
+static capture_params_t mImageCaptureParms;
 //static raw_capture_params_t mRawCaptureParms;
 //static zsl_capture_params_t mZslCaptureParms;
 //static zsl_params_t mZslParms;
@@ -3447,7 +3447,6 @@ static int parse_size(const char *str, int &width, int &height)
 }
 QualcommCameraHardware* hardware;
 
-
 bool QualcommCameraHardware::initPreview()
 {
     const char * pmem_region;
@@ -3615,11 +3614,12 @@ LOGE("%s Got preview dimension as %d x %d ", __func__, previewWidth, previewHeig
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        camframeParams.cammode = CAMERA_MODE_2D;
 
         mFrameThreadRunning = !pthread_create(&mFrameThread,
                                               &attr,
                                               frame_thread,
-                                              (void *)NULL);
+                                              &camframeParams);
         ret = mFrameThreadRunning;
         mFrameThreadWaitLock.unlock();
     }
@@ -3837,6 +3837,108 @@ bool QualcommCameraHardware::createSnapshotMemory (int numberOfRawBuffers, int n
     } // end else , if RAW format
     return true;
 }
+bool QualcommCameraHardware::initImageEncodeParameters(int size)
+{
+    LOGV("%s: E", __FUNCTION__);
+    memset(&mImageEncodeParms, 0, sizeof(encode_params_t));
+    int jpeg_quality = mParameters.getInt("jpeg-quality");
+    bool ret;
+    if (jpeg_quality >= 0) {
+        LOGV("initJpegParameters, current jpeg main img quality =%d",
+             jpeg_quality);
+        //Application can pass quality of zero
+        //when there is no back sensor connected.
+        //as jpeg quality of zero is not accepted at
+        //camera stack, pass default value.
+        if(jpeg_quality == 0) jpeg_quality = 85;
+        mImageEncodeParms.quality = jpeg_quality;
+        ret = native_set_parms(CAMERA_PARM_JPEG_MAINIMG_QUALITY, sizeof(int), &jpeg_quality);
+        if(!ret){
+          LOGE("initJpegParametersX: failed to set main image quality");
+          return false;
+        }
+    }
+
+    int thumbnail_quality = mParameters.getInt("jpeg-thumbnail-quality");
+    if (thumbnail_quality >= 0) {
+        //Application can pass quality of zero
+        //when there is no back sensor connected.
+        //as quality of zero is not accepted at
+        //camera stack, pass default value.
+        if(thumbnail_quality == 0) thumbnail_quality = 85;
+        LOGV("initJpegParameters, current jpeg thumbnail quality =%d",
+             thumbnail_quality);
+        /* TODO: check with mm-camera? */
+        mImageEncodeParms.quality = thumbnail_quality;
+        ret = native_set_parms(CAMERA_PARM_JPEG_THUMB_QUALITY, sizeof(int), &thumbnail_quality);
+        if(!ret){
+          LOGE("initJpegParameters X: failed to set thumbnail quality");
+          return false;
+        }
+    }
+
+    int rotation = mParameters.getInt("rotation");
+    char mDeviceName[PROPERTY_VALUE_MAX];
+    property_get("ro.hw_plat", mDeviceName, "");
+    if(!strcmp(mDeviceName,"7x25A"))
+        rotation = (rotation + 90)%360;
+
+    if (mIs3DModeOn)
+        rotation = 0;
+    if (rotation >= 0) {
+        LOGV("initJpegParameters, rotation = %d", rotation);
+        mImageEncodeParms.rotation = rotation;
+    }
+
+    jpeg_set_location();
+
+    //set TimeStamp
+    const char *str = mParameters.get(CameraParameters::KEY_EXIF_DATETIME);
+    if(str != NULL) {
+      strncpy(dateTime, str, 19);
+      dateTime[19] = '\0';
+      addExifTag(EXIFTAGID_EXIF_DATE_TIME_ORIGINAL, EXIF_ASCII,
+                  20, 1, (void *)dateTime);
+    }
+
+    int focalLengthValue = (int) (mParameters.getFloat(
+                CameraParameters::KEY_FOCAL_LENGTH) * FOCAL_LENGTH_DECIMAL_PRECISON);
+    rat_t focalLengthRational = {focalLengthValue, FOCAL_LENGTH_DECIMAL_PRECISON};
+    memcpy(&focalLength, &focalLengthRational, sizeof(focalLengthRational));
+    addExifTag(EXIFTAGID_FOCAL_LENGTH, EXIF_RATIONAL, 1,
+                1, (void *)&focalLength);
+    //Adding ExifTag for ISOSpeedRating
+    const char *iso_str = mParameters.get(CameraParameters::KEY_ISO_MODE);
+    int iso_value = attr_lookup(iso, sizeof(iso) / sizeof(str_map), iso_str);
+    isoMode = iso_arr[iso_value];
+    addExifTag(EXIFTAGID_ISO_SPEED_RATING,EXIF_SHORT,1,1,(void *)&isoMode);
+
+    if (mUseJpegDownScaling) {
+      LOGV("initImageEncodeParameters: update main image", __func__);
+      mImageEncodeParms.output_picture_width = mActualPictWidth;
+      mImageEncodeParms.output_picture_height = mActualPictHeight;
+    }
+    mImageEncodeParms.cbcr_offset = mCbCrOffsetRaw;
+    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
+        mImageEncodeParms.cbcr_offset = mCbCrOffsetRaw;
+    /* TODO: check this */
+    mImageEncodeParms.y_offset = 0;
+    for(int i = 0; i < size; i++){
+        memset(&mEncodeOutputBuffer[i], 0, sizeof(mm_camera_buffer_t));
+        mEncodeOutputBuffer[i].ptr = (uint8_t *)mJpegMapped[i]->data;
+        mEncodeOutputBuffer[i].actual_size = mJpegMaxSize;
+        mEncodeOutputBuffer[i].size = mJpegMaxSize;
+        mEncodeOutputBuffer[i].fd = mJpegfd[i];
+        mEncodeOutputBuffer[i].offset = 0;
+    }
+    mImageEncodeParms.p_output_buffer = mEncodeOutputBuffer;
+    mImageEncodeParms.exif_data = exif_data;
+    mImageEncodeParms.exif_numEntries = exif_table_numEntries;
+
+    mImageEncodeParms.format3d = mIs3DModeOn;
+    return true;
+}
+
 bool QualcommCameraHardware::initRaw(bool initJpegHeap)
 {
     const char * pmem_region;
@@ -3996,9 +4098,9 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
     }
     /* frame all the exif and encode information into encode_params_t */
 
-//    initImageEncodeParameters(numCapture);
+    initImageEncodeParameters(numCapture);
     /* fill main image size, thumbnail size, postview size into capture_params_t*/
-/*    memset(&mImageCaptureParms, 0, sizeof(capture_params_t));
+    memset(&mImageCaptureParms, 0, sizeof(capture_params_t));
     mImageCaptureParms.num_captures = numCapture;
     mImageCaptureParms.picture_width = mPictureWidth;
     mImageCaptureParms.picture_height = mPictureHeight;
@@ -4021,7 +4123,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         mImageCaptureParms.postview_width, mImageCaptureParms.postview_height);
     LOGI("%s: thumbnail size=%dx%d",__FUNCTION__,
         mImageCaptureParms.thumbnail_width, mImageCaptureParms.thumbnail_height);
-*/
+
     LOGV("initRaw X");
     return true;
 }
@@ -5243,7 +5345,7 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
                          NULL);
     } else if(mSnapshotFormat == PICTURE_FORMAT_JPEG){
         if(!mZslEnable || mZslFlashEnable){
-            mCamOps.mm_camera_start(CAMERA_OPS_SNAPSHOT,0,
+            mCamOps.mm_camera_start(CAMERA_OPS_CAPTURE,(void *)&mImageCaptureParms,
                  0);
 /*            }else{
                 notifyShutter(TRUE);
@@ -5254,6 +5356,7 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
                       (void *)&mImageEncodeParms);
 */
            }
+#if 0
         receiveRawPicture();
 	mSnapshotFormat = 0;
 //	if(ret != false) {
@@ -5306,22 +5409,25 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
         }
         mJpegThreadWaitLock.unlock();
 */
-
+#endif
+            mJpegThreadWaitLock.lock();
+/*
             if(libmmcamera != NULL)
             {
                 LINK_jpeg_encoder_join();
             }
+*/
 
         //cleanup
-       if(!mZslEnable || mZslFlashEnable)
-            deinitRaw();
+//       if(!mZslEnable || mZslFlashEnable)
+  //          deinitRaw();
     }else if(mSnapshotFormat == PICTURE_FORMAT_RAW){
         notifyShutter(TRUE);
         mCamOps.mm_camera_start(CAMERA_OPS_RAW_SNAPSHOT,0,
                                  NULL);
         // Waiting for callback to come
         LOGV("runSnapshotThread : waiting for callback to come");
-        receiveRawPicture();
+//        receiveRawPicture();
         mJpegThreadWaitLock.lock();
         while (mJpegThreadRunning) {
             LOGV("%s: waiting for jpeg callback.", __FUNCTION__);
@@ -6876,7 +6982,7 @@ static void crop_yuv420(uint32_t width, uint32_t height,
     }
 }
 // ReceiveRawPicture for ICS
-void QualcommCameraHardware::receiveRawPicture()
+void QualcommCameraHardware::receiveRawPicture(status_t status,struct msm_frame *postviewframe, struct msm_frame *mainframe)
 {
     LOGE("%s: E", __FUNCTION__);
 
@@ -7413,8 +7519,9 @@ status_t QualcommCameraHardware::setRecordingHint(const CameraParameters& params
 
 /*        native_set_parms(CAMERA_PARM_RECORDING_HINT, sizeof(value),
                                                (void *)&value);
-        native_set_parms(CAMERA_PARM_CAF_ENABLE, sizeof(value),
-                                               (void *)&value);*/
+*/
+        native_set_parms(CAMERA_PARM_CONTINUOUS_AF, sizeof(value),
+                                               (void *)&value);
         mParameters.set(CameraParameters::KEY_RECORDING_HINT, str);
       } else {
           LOGE("Invalid Picture Format value: %s", str);
@@ -8393,7 +8500,6 @@ status_t QualcommCameraHardware::setFocusMode(const CameraParameters& params)
                 LOGE("%s: updateFocusDistances failed for %s", __FUNCTION__, str);
                 return UNKNOWN_ERROR;
             }
-
             if(mHasAutoFocusSupport){
                 int cafSupport = FALSE;
                 if(!strcmp(str, CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO) ||
