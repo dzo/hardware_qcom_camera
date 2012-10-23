@@ -72,11 +72,11 @@ extern "C" {
 #include <stdlib.h>
 
 
-#include <camera.h>
-#include <cam_fifo.h>
-#include <liveshot.h>
-#include <jpege.h>
-#include <jpeg_encoder.h>
+#include "camera.h"
+//#include <cam_fifo.h>
+//#include <liveshot.h>
+//#include <jpege.h>
+//#include <jpeg_encoder.h>
 
 #define DUMP_LIVESHOT_JPEG_FILE 0
 
@@ -5825,7 +5825,7 @@ status_t QualcommCameraHardware::takePicture()
                    flashMode = (is_flash_fired>>1) | flashMode ;
             }
         }
-        addExifTag(EXIFTAGID_FLASH,EXIF_SHORT,1,1,(void *)&flashMode);
+//        addExifTag(EXIFTAGID_FLASH,EXIF_SHORT,1,1,(void *)&flashMode);
     }
 
     if(mParameters.getPictureFormat() != 0 &&
@@ -8865,7 +8865,8 @@ status_t QualcommCameraHardware::setMeteringAreas(const CameraParameters& params
         }
         if(checkAreaParameters(str) != 0) {
           LOGE("%s: Failed to parse the input string '%s'", __FUNCTION__, str);
-          return BAD_VALUE;
+          mParameters.set(CameraParameters::KEY_METERING_AREAS, NULL);
+          return NO_ERROR;
         }
         mParameters.set(CameraParameters::KEY_METERING_AREAS, str);
     }
@@ -8889,7 +8890,8 @@ status_t QualcommCameraHardware::setFocusAreas(const CameraParameters& params)
 
         if(checkAreaParameters(str) != 0) {
           LOGE("%s: Failed to parse the input string '%s'", __FUNCTION__, str);
-          return BAD_VALUE;
+          mParameters.set(CameraParameters::KEY_FOCUS_AREAS, NULL);
+          return NO_ERROR;
         }
 
         mParameters.set(CameraParameters::KEY_FOCUS_AREAS, str);

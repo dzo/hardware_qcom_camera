@@ -40,9 +40,9 @@
 extern "C" {
 #include <linux/android_pmem.h>
 #include <linux/ion.h>
-#include <camera.h>
-#include <camera_defs_i.h>
-#include <mm_camera_interface.h>
+#include "camera.h"
+//#include <camera_defs_i.h>
+//#include <mm_camera_interface.h>
 }
 
 struct str_map {
