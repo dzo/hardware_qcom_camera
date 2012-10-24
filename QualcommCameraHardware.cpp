@@ -229,7 +229,7 @@ union zoomimage
 
 //Default FPS
 #define MINIMUM_FPS 5
-#define MAXIMUM_FPS 31
+#define MAXIMUM_FPS 30
 #define DEFAULT_FPS MAXIMUM_FPS
 #define DEFAULT_FIXED_FPS_VALUE 30
 /*
@@ -2649,6 +2649,7 @@ bool QualcommCameraHardware::initImageEncodeParameters(int size)
 bool QualcommCameraHardware::native_set_parms(
     mm_camera_parm_type_t type, uint16_t length, void *value)
 {
+    LOGI("native_set_parms %d %d %d",type,length,*(int *)value);
     if(mCfgControl.mm_camera_set_parm(type,value) != MM_CAMERA_SUCCESS) {
         LOGE("native_set_parms failed: type %d length %d error %s",
             type, length, strerror(errno));
@@ -7938,8 +7939,9 @@ status_t QualcommCameraHardware::setRecordingHint(const CameraParameters& params
 
         native_set_parms(CAMERA_PARM_RECORDING_HINT, sizeof(value),
                                                (void *)&value);
-        /*native_set_parms(CAMERA_PARM_CAF_ENABLE, sizeof(value),
-                                               (void *)&value);*/
+/*        native_set_parms(CAMERA_PARM_CAF_ENABLE, sizeof(value),
+                                               (void *)&value);
+*/
         mParameters.set(CameraParameters::KEY_RECORDING_HINT, str);
       } else {
           LOGE("Invalid Picture Format value: %s", str);
@@ -8890,7 +8892,7 @@ status_t QualcommCameraHardware::setFocusAreas(const CameraParameters& params)
 
         if(checkAreaParameters(str) != 0) {
           LOGE("%s: Failed to parse the input string '%s'", __FUNCTION__, str);
-          mParameters.set(CameraParameters::KEY_FOCUS_AREAS, NULL);
+          mParameters.set(CameraParameters::KEY_FOCUS_AREAS, FOCUS_AREA_INIT);
           return NO_ERROR;
         }
 
