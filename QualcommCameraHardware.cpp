@@ -2600,6 +2600,7 @@ bool QualcommCameraHardware::initImageEncodeParameters(int size)
     jpeg_set_location();
 
     //set TimeStamp
+/*
     const char *str = mParameters.get(CameraParameters::KEY_EXIF_DATETIME);
     if(str != NULL) {
       strncpy(dateTime, str, 19);
@@ -2607,6 +2608,19 @@ bool QualcommCameraHardware::initImageEncodeParameters(int size)
       addExifTag(EXIFTAGID_EXIF_DATE_TIME_ORIGINAL, EXIF_ASCII,
                   20, 1, (void *)dateTime);
     }
+*/
+    time_t rawtime;
+    struct tm * timeinfo;
+
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+    sprintf(dateTime,"%04d:%02d:%02d %02d:%02d:%02d",timeinfo->tm_year+1900, timeinfo->tm_mon+1, 
+            timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec); 
+    addExifTag(EXIFTAGID_EXIF_DATE_TIME_ORIGINAL, EXIF_ASCII,
+                  20, 1, (void *)dateTime);
+    addExifTag(EXIFTAGID_EXIF_DATE_TIME_CREATED, EXIF_ASCII,
+                  20, 1, (void *)dateTime);
+
 
     int focalLengthValue = (int) (mParameters.getFloat(
                 CameraParameters::KEY_FOCAL_LENGTH) * FOCAL_LENGTH_DECIMAL_PRECISON);
@@ -8861,7 +8875,7 @@ status_t QualcommCameraHardware::setMeteringAreas(const CameraParameters& params
     }
     else {
         // handling default string
-        if (strcmp("(-2000,-2000,-2000,-2000,0)", str) == 0) {
+        if (strcmp("(-2000,-2000,-2000,-2000,0)", str) == 0 || strcmp("(0,0,0,0,0)", str) == 0) {
           mParameters.set(CameraParameters::KEY_METERING_AREAS, NULL);
           return NO_ERROR;
         }
@@ -8885,7 +8899,7 @@ status_t QualcommCameraHardware::setFocusAreas(const CameraParameters& params)
     }
     else {
         // handling default string
-        if (strcmp("(-2000,-2000,-2000,-2000,0)", str) == 0) {
+        if (strcmp("(-2000,-2000,-2000,-2000,0)", str) == 0 || strcmp("(0,0,0,0,0)", str) == 0) {
           mParameters.set(CameraParameters::KEY_FOCUS_AREAS, NULL);
           return NO_ERROR;
         }
@@ -8924,6 +8938,7 @@ status_t QualcommCameraHardware::setFocusMode(const CameraParameters& params)
                 }
                 LOGV("Continuous Auto Focus %d", cafSupport);
                 native_set_parms(CAMERA_PARM_CONTINUOUS_AF, sizeof(int8_t), (void *)&cafSupport);
+
             }
             // Focus step is reset to infinity when preview is started. We do
             // not need to do anything now.
