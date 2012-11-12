@@ -678,7 +678,7 @@ static camera_antibanding_type camera_get_location(void) {
 #endif
 
 static const str_map scenemode[] = {
-    { CameraParameters::SCENE_MODE_OFF,           CAMERA_BESTSHOT_OFF },
+    { CameraParameters::SCENE_MODE_OFF,            CAMERA_BESTSHOT_OFF },
     { CameraParameters::SCENE_MODE_AUTO,           CAMERA_BESTSHOT_AUTO },
     { CameraParameters::SCENE_MODE_ACTION,         CAMERA_BESTSHOT_ACTION },
     { CameraParameters::SCENE_MODE_PORTRAIT,       CAMERA_BESTSHOT_PORTRAIT },
@@ -4495,6 +4495,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         LOGE("setting camera id failed");
         return false;
     }
+    LOGE("w=%d h=%d offset=%d",mPictureWidth,mPictureHeight,mCbCrOffsetRaw);
     cam_buf_info_t buf_info;
     int yOffset = 0;
     if(mIs3DModeOn == false)
@@ -4507,6 +4508,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         mCbCrOffsetRaw = buf_info.cbcr_offset;
         yOffset = buf_info.yoffset;
     }
+    LOGE("new w=%d h=%d offset=%d yoffset=%d",mPictureWidth,mPictureHeight,mCbCrOffsetRaw,yOffset);
     int mBufferSize;
     int CbCrOffset;
     if(mCurrentTarget != TARGET_MSM7627 && mCurrentTarget != TARGET_MSM7627A){
@@ -4518,6 +4520,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         mBufferSize = mPostviewWidth * mPostviewHeight * 3/2;
         CbCrOffset = PAD_TO_WORD(mPostviewWidth * mPostviewHeight);
     }
+    LOGE("poat w=%d h=%d offset=%d",mPostviewWidth,mPostviewHeight,CbCrOffset);
 
     LOGV("initRaw: initializing mRawHeap.");
 
@@ -6112,7 +6115,7 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
     const char *str = params.get(CameraParameters::KEY_SCENE_MODE);
     int32_t value = attr_lookup(scenemode, sizeof(scenemode) / sizeof(str_map), str);
 
-    if((value != NOT_FOUND) && (value == CAMERA_BESTSHOT_OFF)) {
+    if((value != NOT_FOUND) && (value == CAMERA_BESTSHOT_OFF || value == CAMERA_BESTSHOT_AUTO)) {
         if ((rc = setPreviewFrameRate(params))) final_rc = rc;
     //    if ((rc = setPreviewFrameRateMode(params))) final_rc = rc;
         if ((rc = setAutoExposure(params))) final_rc = rc;
@@ -6126,7 +6129,7 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
         if ((rc = setMeteringAreas(params)))  final_rc = rc;
     }
     //selectableZoneAF needs to be invoked after continuous AF
-    if ((rc = setSelectableZoneAf(params)))   final_rc = rc;
+//    if ((rc = setSelectableZoneAf(params)))   final_rc = rc;
     // setHighFrameRate needs to be done at end, as there can
     // be a preview restart, and need to use the updated parameters
     if ((rc = setHighFrameRate(params)))  final_rc = rc;
