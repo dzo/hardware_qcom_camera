@@ -739,7 +739,7 @@ static const str_map focus_modes[] = {
     { CameraParameters::FOCUS_MODE_INFINITY, DONT_CARE },
     { CameraParameters::FOCUS_MODE_NORMAL,   AF_MODE_NORMAL },
     { CameraParameters::FOCUS_MODE_MACRO,    AF_MODE_MACRO },
-    { CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE, AF_MODE_CAF },
+//    { CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE, AF_MODE_CAF },
     { CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO, DONT_CARE }
 };
 
@@ -4509,7 +4509,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         mCbCrOffsetRaw = buf_info.cbcr_offset;
         mYOffset = buf_info.yoffset;
     }
-    LOGE("new w=%d h=%d offset=%d yoffset=%d",mPictureWidth,mPictureHeight,mCbCrOffsetRaw,yOffset);
+    LOGE("new w=%d h=%d offset=%d yoffset=%d",mPictureWidth,mPictureHeight,mCbCrOffsetRaw,mYOffset);
     int mBufferSize;
     int CbCrOffset;
     if(mCurrentTarget != TARGET_MSM7627 && mCurrentTarget != TARGET_MSM7627A){
@@ -5526,6 +5526,8 @@ void QualcommCameraHardware::runAutoFocus()
 
     /* This will block until either AF completes or is cancelled. */
     LOGV("af start (mode %d)", afMode);
+    if(afMode==AF_MODE_CAF)
+	afMode=AF_MODE_AUTO;
     status_t err;
     err = mAfLock.tryLock();
     if(err == NO_ERROR) {
@@ -6130,7 +6132,7 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
         if ((rc = setMeteringAreas(params)))  final_rc = rc;
     }
     //selectableZoneAF needs to be invoked after continuous AF
-//    if ((rc = setSelectableZoneAf(params)))   final_rc = rc;
+    if ((rc = setSelectableZoneAf(params)))   final_rc = rc;
     // setHighFrameRate needs to be done at end, as there can
     // be a preview restart, and need to use the updated parameters
     if ((rc = setHighFrameRate(params)))  final_rc = rc;
@@ -9526,6 +9528,7 @@ int QualcommCameraHardware::storeMetaDataInBuffers(int enable)
 {
         /* this is a dummy func now. fix me later */
     LOGI("in storeMetaDataInBuffers : enable %d", enable);
+//    return INVALID_OPERATION;
     mStoreMetaDataInFrame = enable;
     return 0;
 }
